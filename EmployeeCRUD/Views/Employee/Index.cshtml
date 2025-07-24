@@ -1,0 +1,217 @@
+﻿@model IEnumerable<EmployeeCRUD.Models.EmployeeViewModel>
+
+@{
+    ViewData["Title"] = "Employee Data";
+}
+
+<style>
+    .sidebar-logo {
+        width: 50px; 
+        height: 50px; 
+    }
+
+    .header-logo {
+        width: 120px;
+        height: 120px; 
+    }
+
+    .table-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .table thead {
+        background-color: #009530; 
+        color: white;
+    }
+
+    .btn-edit {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #000;
+    }
+
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #000;
+    }
+
+    .table th {
+        text-align: center;
+        vertical-align: middle;
+        font-weight: normal;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .action-cell {
+        text-align: center;
+    }
+</style>
+
+<div class="table-container">
+    <div class="row mb-3">
+        <div class="col-6">
+            <h2 style="font-weight:bold;">Employee Data</h2>
+        </div>
+        <div class="col-6 text-end">
+            <button onclick="openModal(null)" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Employee
+            </button>
+        </div>
+    </div>
+
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>SESA ID</th>
+                <th>Name</th>
+                <th>Gender</th>
+                <th>Department</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.SESA_ID</td>
+                    <td>@item.Name</td>
+                    <td>@item.Gender</td>
+                    <td>@item.Department</td>
+                    <td class="action-cell">
+                        <button onclick="openModal('@item.SESA_ID')" class="btn btn-edit btn-sm">Edit</button>
+                        <button onclick="deleteEmployee('@item.SESA_ID')" class="btn btn-danger btn-sm">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+
+<div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="employeeModalLabel">Employee Form</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="employeeForm">
+                    <div class="mb-3"> <label for="SESA_ID" class="form-label">SESA ID</label> <input type="text" class="form-control" id="SESA_ID" name="SESA_ID"> </div>
+                    <div class="mb-3"> <label for="Name" class="form-label">Name</label> <input type="text" class="form-control" id="Name" name="Name"> </div>
+                    <div class="mb-3"> <label for="Birth_date" class="form-label">Birth Date</label> <input type="date" class="form-control" id="Birth_date" name="Birth_date"> </div>
+                    <div class="mb-3"> <label for="Gender" class="form-label">Gender</label> <select class="form-select" id="Gender" name="Gender"> <option value="M">Male</option> <option value="F">Female</option> </select> </div>
+                    <div class="mb-3"> <label for="Department_code" class="form-label">Department</label> <select class="form-select" id="Department_code" name="Department_code"> <option value="DT">Digital Transformation</option> <option value="FIN">Finance</option> <option value="HR">Human Resources</option> </select> </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveEmployee()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var myModal = new bootstrap.Modal(document.getElementById('employeeModal'));
+
+        function openModal(id) {
+            document.getElementById('employeeForm').reset();
+            var sesaIdInput = document.getElementById('SESA_ID');
+            if (id) {
+                sesaIdInput.readOnly = true;
+                $('#employeeModalLabel').text('Edit Employee');
+                $.ajax({
+                    url: '/Employee/Get/' + id,
+                    type: 'GET',
+                    success: function (response) {
+                        if (response.success) {
+                            var data = response.data;
+                            $('#SESA_ID').val(data.SESA_ID);
+                            $('#Name').val(data.Name);
+                            $('#Birth_date').val(data.Birth_date.substring(0, 10));
+                            $('#Gender').val(data.Gender);
+                            $('#Department_code').val(data.Department_code);
+                        }
+                    }
+                });
+            } else {
+                sesaIdInput.readOnly = false;
+                $('#employeeModalLabel').text('Add New Employee');
+            }
+            myModal.show();
+        }
+
+        function saveEmployee() {
+            var employeeData = {
+                SESA_ID: $('#SESA_ID').val(), Name: $('#Name').val(),
+                Birth_date: $('#Birth_date').val(), Gender: $('#Gender').val(),
+                Department_code: $('#Department_code').val()
+            };
+            $.ajax({
+                url: '/Employee/Save', type: 'POST', data: employeeData,
+                success: function (response) {
+                    myModal.hide();
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Your data has been saved.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message || 'Failed to save data.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                }
+            });
+        }
+
+        function deleteEmployee(id) {
+            Swal.fire({
+                title: 'Delete this data?',
+                text: "Are you sure for this action?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes!',
+                cancelButtonText: 'No!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Employee/Delete',
+                        type: 'POST',
+                        data: { id: id },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire(
+                                    'Deleted!',
+                                    'The data has been deleted.',
+                                    'success'
+                                ).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', response.message, 'error');
+                            }
+                        }
+                    });
+                }
+            })
+        }
+    </script>
+}
